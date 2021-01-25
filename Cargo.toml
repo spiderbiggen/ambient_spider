@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 druid = "0.7.0"
+librespot = "0.1.3"
+tokio-core = "0.1.2"
