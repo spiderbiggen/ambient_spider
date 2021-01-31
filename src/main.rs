@@ -1,28 +1,62 @@
+#![feature(once_cell)]
 mod components;
+mod cache;
 mod models;
 
-use druid::widget::{Button, Flex, Label};
-use druid::{AppLauncher, LocalizedString, PlatformError, Widget, WidgetExt, WindowDesc};
+use druid::widget::{Button, Flex, Label, List, CrossAxisAlignment};
+use druid::{AppLauncher, LocalizedString, PlatformError, Widget, WidgetExt, WindowDesc, Color};
 use models::State;
+use crate::components::songs::build_song;
+use crate::models::Song;
+use crate::cache::IMAGE_CACHE;
+use std::ops::Deref;
 
-fn main() -> Result<(), PlatformError> {
+#[tokio::main]
+async fn main() -> Result<(), PlatformError> {
     let main_window = WindowDesc::new(ui_builder);
-    let data = State { count: 0_u32 };
+    let data = State {
+        count: 0_u32,
+        songs: vec![
+            Song {
+                title: "Dark Crow".to_string(),
+                artist: "MAN WITH A MISSION".to_string(),
+                album: "Dark Crow".to_string(),
+                image: Some("https://m.media-amazon.com/images/I/81eaclV+-1L._SS500_.jpg".to_string()),
+                length: 315
+            }
+        ].into(),
+    };
+    let cache = &IMAGE_CACHE;
+    cache.get_image("https://m.media-amazon.com/images/I/81eaclV+-1L._SS500_.jpg");
     AppLauncher::<State>::with_window(main_window)
         .use_simple_logger()
         .launch(data)
 }
 
 fn ui_builder() -> impl Widget<State> {
+    let songs = List::new(build_song).lens(State::songs);
+    let row = Flex::row().must_fill_main_axis(true)
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_flex_child(sidebar_builder(), 0.3)
+        .with_flex_child(songs, 0.7);
+    Flex::column()
+        .must_fill_main_axis(true)
+        .with_flex_child(row, 1.0)
+}
+
+fn sidebar_builder() -> impl Widget<State> {
     // The label text will be computed dynamically based on the current locale and count
     let text =
-        LocalizedString::new("hello-counter").with_arg("count", |data: &State, _env| (data.count).into());
+        LocalizedString::new("hello-counter").with_arg("count", |data: &State, _env| data.count.into());
     let label = Label::new(text).padding(5.0).center();
     let button = Button::new("increment")
         .on_click(|_ctx, data: &mut State, _env| data.count += 1_u32)
         .padding(5.0);
-
-    Flex::column().with_child(label).with_child(button)
+    Flex::column()
+        .must_fill_main_axis(true)
+        .with_child(label)
+        .with_child(button)
+        .background(Color::from_hex_str("#000000").unwrap())
 }
 
 // use std::env;
